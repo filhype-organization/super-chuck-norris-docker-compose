@@ -70,7 +70,6 @@ services:
       - QUARKUS_DATASOURCE_DB=${POSTGRES_DB}
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://database-service:${POSTGRES_PORT}/${POSTGRES_DB}
       - QUARKUS_OIDC_AUTH_SERVER_URL=http://keycloak:8080/realms/${KEYCLOAK_REALM}
-      - QUARKUS_OIDC_CLIENT_ID=backend-service
       - QUARKUS_OIDC_CLIENT_ID=${BACKEND_CLIENT_ID}
       - QUARKUS_OIDC_CLIENT_SECRET=${BACKEND_CLIENT_SECRET}
     networks:
@@ -85,10 +84,14 @@ services:
   frontend:
     image: leeson77/chuck-norris-frontend:${FRONTEND_VERSION}
     container_name: frontend
+    ports:
+      - "${FRONTEND_PORT}:80"
     networks:
       - app-network
     environment:
-      - NG_APP_API_URL=http://localhost/api
+      - NG_APP_API_URL=${NG_APP_API_URL}
+      - NG_APP_AUTH_URL=${NG_APP_AUTH_URL}
+      - NG_APP_CLIENT_ID=${NG_APP_CLIENT_ID}
     depends_on:
       - backend
 

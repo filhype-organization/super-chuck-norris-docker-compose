@@ -1,18 +1,32 @@
 http:
   routers:
+    keycloak:
+      rule: "PathPrefix(`/auth`)"
+      service: keycloak
+      entrypoints:
+        - web
+      priority: 100
+    
     backend:
       rule: "PathPrefix(`/api`)"
       service: back
       entrypoints:
         - web
+      priority: 90
     
     frontend:
       rule: "PathPrefix(`/`)"
       service: front
       entrypoints:
         - web
+      priority: 10
       
   services:
+    keycloak:
+      loadBalancer:
+        servers:
+          - url: "http://keycloak:8080"
+    
     back:
       loadBalancer:
         servers:

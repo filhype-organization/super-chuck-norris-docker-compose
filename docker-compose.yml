@@ -27,14 +27,13 @@ services:
       - "--import-realm"
       - "--health-enabled=true"
       - "--http-enabled=true"
-      - "--hostname=keycloak"
       - "--proxy-headers=forwarded"
+      - "--http-relative-path=/auth"
     ports:
-      - "${KEYCLOAK_PORT}:8080"
-      - "${KEYCLOAK_MANAGEMENT_PORT}:9000"
+      - "8180:8080"  # Port pour accès admin direct
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://database-service:${POSTGRES_PORT}/keycloak
       KC_DB_USERNAME: ${POSTGRES_USER}
@@ -43,9 +42,9 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HTTP_RELATIVE_PATH: "/"
+      KC_HTTP_RELATIVE_PATH: "/auth"
       KC_FEATURES: token-exchange,admin-fine-grained-authz
-      KC_REALM_IMPORT: /opt/keycloak/data/import/realm.json
+      KC_REALM_IMPORT: /opt/keycloak/data/import/app-realm.json
     volumes:
       - ./keycloak:/opt/keycloak/data/import
     networks:
@@ -69,9 +68,11 @@ services:
       - QUARKUS_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - QUARKUS_DATASOURCE_DB=${POSTGRES_DB}
       - QUARKUS_DATASOURCE_JDBC_URL=jdbc:postgresql://database-service:${POSTGRES_PORT}/${POSTGRES_DB}
-      - QUARKUS_OIDC_AUTH_SERVER_URL=http://keycloak:8080/realms/${KEYCLOAK_REALM}
+      - QUARKUS_OIDC_AUTH_SERVER_URL=http://keycloak:8080/auth/realms/${KEYCLOAK_REALM}
       - QUARKUS_OIDC_CLIENT_ID=${BACKEND_CLIENT_ID}
-      - QUARKUS_OIDC_CLIENT_SECRET=${BACKEND_CLIENT_SECRET}
+      - QUARKUS_OIDC_CREDENTIALS_SECRET=${BACKEND_CLIENT_SECRET}
+      - QUARKUS_OIDC_TOKEN_ISSUER=http://localhost/auth/realms/${KEYCLOAK_REALM}
+      - MP_JWT_VERIFY_PUBLICKEY_LOCATION=http://keycloak:8080/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
     networks:
       - app-network
     depends_on:
@@ -84,13 +85,11 @@ services:
   frontend:
     image: leeson77/chuck-norris-frontend:${FRONTEND_VERSION}
     container_name: frontend
-    ports:
-      - "${FRONTEND_PORT}:80"
     networks:
       - app-network
     environment:
-      - NG_APP_API_URL=${NG_APP_API_URL}
-      - NG_APP_AUTH_URL=${NG_APP_AUTH_URL}
+      - NG_APP_API_URL=http://localhost
+      - NG_APP_AUTH_URL=http://localhost/auth
       - NG_APP_CLIENT_ID=${NG_APP_CLIENT_ID}
     depends_on:
       - backend
